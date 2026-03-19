@@ -19,3 +19,20 @@ Claude Code 관련 연구 노트 모음.
 | my-update-check | [my-update-check](my-update-check/my-update-check_2026-03-16.md) | 2026-03-16 |
 | Claude Code 컨텍스트 관리 | [context-management](Claude%20Code%20컨텍스트%20관리/context-management_2026-03-17.md) | 2026-03-17 |
 | Claude 모델 비교 — Opus, Sonnet, Haiku 각각 언제 쓸까 | [claude-model-comparison](Claude%20모델%20비교%20—%20Opus%2C%20Sonnet%2C%20Haiku%20각각%20언제%20쓸까/claude-model-comparison_2026-03-19.md) | 2026-03-19 |
+
+## SEO 연구
+
+| # | 주제 | 파일 | 날짜 |
+|---|------|------|------|
+| 01 | SEO 기초 개념과 원리 | [seo-fundamentals](SEO/01-SEO%20기초%20개념과%20원리/seo-fundamentals_2026-03-20.md) | 2026-03-20 |
+| 02 | Technical SEO | [technical-seo](SEO/02-Technical%20SEO/technical-seo_2026-03-20.md) | 2026-03-20 |
+| 03 | On-page SEO와 콘텐츠 전략 | [on-page-seo](SEO/03-On-page%20SEO와%20콘텐츠%20전략/on-page-seo-content-strategy_2026-03-20.md) | 2026-03-20 |
+| 04 | Off-page SEO와 링크빌딩 | [off-page-seo](SEO/04-Off-page%20SEO와%20링크빌딩/off-page-seo-link-building_2026-03-20.md) | 2026-03-20 |
+| 05 | SEO 도구와 측정, 실전 가이드 | [seo-tools](SEO/05-SEO%20도구와%20측정%2C%20실전%20가이드/seo_tools_measurement_practical_guide_2026-03-20.md) | 2026-03-20 |
+
+## GEO 연구
+
+| # | 주제 | 파일 | 날짜 |
+|---|------|------|------|
+| 01 | GEO 기초 개념과 원리 | [geo-fundamentals](GEO/01-GEO%20기초%20개념과%20원리/geo-fundamentals_2026-03-20.md) | 2026-03-20 |
+| 02 | GEO 최적화 전략과 실전 | [geo-optimization](GEO/02-GEO%20최적화%20전략과%20실전/geo-optimization-strategy_2026-03-20.md) | 2026-03-20 |
