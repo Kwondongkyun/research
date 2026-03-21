@@ -19,6 +19,7 @@ Claude Code 관련 연구 노트 모음.
 | my-update-check | [my-update-check](my-update-check/my-update-check_2026-03-16.md) | 2026-03-16 |
 | Claude Code 컨텍스트 관리 | [context-management](Claude%20Code%20컨텍스트%20관리/context-management_2026-03-17.md) | 2026-03-17 |
 | Claude 모델 비교 — Opus, Sonnet, Haiku 각각 언제 쓸까 | [claude-model-comparison](Claude%20모델%20비교%20—%20Opus%2C%20Sonnet%2C%20Haiku%20각각%20언제%20쓸까/claude-model-comparison_2026-03-19.md) | 2026-03-19 |
+| AI 프론트엔드 피드백 루프 — Agentation, Readout, 그리고 시각 피드백의 시대 | [ai-frontend-feedback-loop](AI%20프론트엔드%20피드백%20루프%20—%20Agentation%2C%20Readout%2C%20그리고%20시각%20피드백의%20시대/ai-frontend-feedback-loop_2026-03-21.md) | 2026-03-21 |
 
 ## SEO 연구
 
