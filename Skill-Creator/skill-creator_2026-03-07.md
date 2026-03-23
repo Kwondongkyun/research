@@ -297,6 +297,63 @@ skill-creator는 Anthropic 공식 GitHub 저장소에 있음:
 "스킬 벤치마크 해줘"        → Benchmark 모드
 ```
 
+### Create vs Improve — 두 가지 핵심 경로
+
+skill-creator는 크게 **Create(새로 만들기)**와 **Improve(기존 개선)** 두 경로로 나뉨. 나머지 Eval/Benchmark는 보조 도구임.
+
+| | Create (새로 만들기) | Improve (기존 개선) |
+|---|---|---|
+| **시작점** | 아이디어만 있음 | 이미 SKILL.md가 있음 |
+| **첫 단계** | 의도 파악 → 인터뷰 → SKILL.md 작성 | 현재 스킬 분석 → 문제점 식별 |
+| **baseline** | `without_skill` (스킬 없이) | `old_skill` (이전 버전 스냅샷) |
+| **비교 질문** | "스킬이 있으면 얼마나 좋아지냐?" | "개선 전 vs 개선 후 뭐가 달라졌냐?" |
+| **호출** | "새 스킬 만들어줘" | "이 스킬 개선해줘" |
+
+#### Create 흐름
+
+```
+"새 스킬 만들어줘"
+    ↓
+의도 파악 (뭘 하는 스킬? 언제 트리거?)
+    ↓
+인터뷰 (엣지 케이스, 의존성, 성공 기준)
+    ↓
+SKILL.md 초안 작성
+    ↓
+테스트 케이스 2-3개 생성
+    ↓
+with_skill vs without_skill 비교    ← baseline = 스킬 없이
+    ↓
+채점 → eval-viewer 리뷰 → 피드백 → 개선 → 반복
+    ↓
+만족 시 Description 최적화 (run_loop.py)
+```
+
+#### Improve 흐름
+
+```
+"이 스킬 개선해줘"
+    ↓
+현재 SKILL.md 분석 (구조, 크기, description, 문제점)
+    ↓
+v1 스냅샷 저장 (cp -r skill/ workspace/skill-snapshot-v1/)
+    ↓
+테스트 케이스 생성 (또는 기존 evals 재사용)
+    ↓
+with_skill(v2) vs old_skill(v1) 비교  ← baseline = 이전 버전
+    ↓
+채점 → eval-viewer 리뷰 → 피드백 → 개선 → 반복
+    ↓
+만족 시 Description 최적화 (run_loop.py)
+```
+
+#### Eval / Benchmark 모드
+
+| 모드 | 언제 쓰는지 | 핵심 |
+|------|-----------|------|
+| **Eval** | 테스트만 돌리고 싶을 때 | 개선 없이 현재 품질만 측정 |
+| **Benchmark** | 안정성을 확인하고 싶을 때 | 같은 테스트를 N번 반복해서 **분산** 측정. 한 번 성공 ≠ 항상 성공 |
+
 ---
 
 ### 9. skill-creator 내부 구조
