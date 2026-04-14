@@ -1,10 +1,10 @@
 # Harness Engineering — 멀티에이전트 하네스 설계
 
-> 최종 수정: 2026-03-30
+> 최종 수정: 2026-04-03
 
 ## TL;DR
 
-AI 에이전트를 감싸는 운영 구조(Harness)를 Anthropic의 6축 프레임워크로 평가하고, 부족한 4가지 Gap(Playwright Evaluator, Context Reset, Score-based Pivot, Sprint Contract)을 구현하여 프로세스를 강화했다. 핵심 발견: 프롬프트 기술보다 **구조(하네스)**가 결과에 더 큰 영향을 미치며, 하네스의 모든 구성요소는 모델 한계에 대한 가정이므로 모델이 발전하면 재설계해야 한다.
+AI 모델을 감싸는 운영 구조(Harness)가 무엇인지, Anthropic이 어떻게 설계하는지, 그리고 내 하네스를 6축으로 평가한 결과를 정리한다. 핵심 발견: 프롬프트 기술보다 **구조(하네스)**가 결과에 더 큰 영향을 미치며, 만드는 AI와 평가하는 AI를 분리하고, 하네스는 모델이 발전할수록 재설계해야 한다. 4차에 걸친 실전 검증(Gap 5건 → 0건)으로 Phase 0~8 프로세스가 입증됐다.
 
 ---
 
@@ -141,7 +141,7 @@ Opus 4.5 → Opus 4.6 업그레이드 시 하네스에서 3가지를 뺄 수 있
 
 ---
 
-## Part 3: 내 하네스 현황 + 평가 (6축)
+## Part 3: 내 하네스 현황 + Anthropic 6축 비교
 
 ### 현황: 구성 요소 전체 목록
 
@@ -183,7 +183,7 @@ Opus 4.5 → Opus 4.6 업그레이드 시 하네스에서 3가지를 뺄 수 있
 | `/commit` | 커밋 메시지 자동 생성 | 전체 |
 | `/learn-claude-code` | Claude Code 학습 | - |
 
-**훅 5개:**
+**훅 6개:**
 
 | 훅 | 트리거 | 역할 |
 |----|--------|------|
@@ -192,6 +192,7 @@ Opus 4.5 → Opus 4.6 업그레이드 시 하네스에서 3가지를 뺄 수 있
 | PostCompact | Compact 후 | 컨텍스트 복구 리마인더 |
 | UserPromptSubmit | 사용자 입력 | Compact 감지 시 복구 리마인더 |
 | StopFailure | API 에러 | 에러 알림 전송 |
+| PostToolUse (Edit/Write) | 파일 수정 후 | `lint-fix.sh` — ESLint 자동 수정 (코드품질 72→100점 효과 확인) |
 
 **프로세스 (Phase 0~8):**
 
@@ -210,195 +211,52 @@ Phase 7:   검증 루프 → evaluator + handoff + pivot + reviewer + test
 Phase 8:   기록 → /wrap + handoff + score-history
 ```
 
-### 평가: 6축 채점
+### Anthropic 6축과의 비교
 
-#### 축 1. 역할 분리 — ⭐⭐⭐⭐⭐ (탁월)
+#### 축 1. 역할 분리 — Anthropic 초과
 
-Anthropic의 3인 체제(Planner/Generator/Evaluator)보다 더 세분화:
+| | Anthropic | 내 하네스 |
+|--|-----------|-----------|
+| 구성 | Planner + Generator + Evaluator (3명) | PM + Frontend + Reviewer + Tester + Evaluator + Eval×5 (10명) |
+| 특징 | 역할 분리의 기본 구조 | Evaluator를 코드리뷰(frontend-reviewer)와 앱검증(evaluator)으로 추가 분리, eval-all 5페르소나 |
 
-```
-Anthropic:  Planner(1) + Generator(1) + Evaluator(1) = 3명
-나:          PM(1) + Frontend(1) + Reviewer(1) + Tester(1) + Evaluator(1) + Eval(5명) = 10명
-```
+#### 축 2. 컨텍스트 관리 — 근접, 일부 미달
 
-특히 Evaluator를 코드 리뷰어(frontend-reviewer)와 앱 검증자(evaluator)로 분리한 것, eval-all의 5명 페르소나 분리는 독창적.
+| | Anthropic | 내 하네스 |
+|--|-----------|-----------|
+| 방식 | 새 에이전트로 완전 교체 (Context Reset) | 같은 에이전트가 handoff.md 읽기 |
+| 보완 | — | Compact 감지 + 복구 리마인더, 4개 컨텍스트 파일 |
+| 한계 | — | 컨텍스트 불안 완전 해소 안 됨 |
 
-#### 축 2. 컨텍스트 관리 — ⭐⭐⭐⭐½
+#### 축 3. 품질 평가 체계 — Anthropic 동등 이상
 
-- Compact 감지 + 자동 복구 리마인더: 실용적
-- 4개 컨텍스트 파일 (plan/progress/memory/findings): 구조적
-- handoff.md 템플릿: 구조화된 인수인계 (신규 추가)
-- 부족: 완전한 Context Reset(새 에이전트로 교체)은 아님. 같은 에이전트가 handoff를 읽는 방식
+| | Anthropic | 내 하네스 |
+|--|-----------|-----------|
+| 기본 | Playwright + 4축 채점 기준표 | 동일 구조 (evaluator) |
+| 추가 | — | 코드 정적 분석(frontend-reviewer) + 5관점 평가(eval-all) |
+| 실전 | — | 4차 검증 97.5점 iter1 PASS |
 
-#### 축 3. 품질 평가 체계 — ⭐⭐⭐⭐
+#### 축 4. 반복 메커니즘 — Anthropic 초과
 
-- evaluator: Playwright MCP로 실제 앱 검증 + 4축 가중 채점 (신규 추가)
-- frontend-reviewer: Confidence Score 0-100 (80+ 보고, Critical 90+)
-- eval-all: 5관점 가중 평균 /100
-- 부족: 실전 미검증, Sprint Contract 없으면 일반 체크리스트에 의존
+| | Anthropic | 내 하네스 |
+|--|-----------|-----------|
+| 기본 | 피드백 기반 단순 루프 | Ralph Loop (Closed-loop + 피드백 주입, 8회 실험 검증) |
+| 정체 대응 | — | stall-detector + /pivot-check (3회 연속 정체 시 방향 전환) |
+| 추적 | — | score-history.jsonl 점수 이력 |
 
-#### 축 4. 반복 메커니즘 — ⭐⭐⭐⭐⭐
+#### 축 5. Sprint Contract — Anthropic 동등
 
-- Ralph Loop (Closed-loop + 피드백 주입): 8회 실험으로 검증 (반복 조합 100% Critical 0)
-- stall-detector + /pivot-check: 3회 정체 시 방향 전환 (신규 추가)
-- score-history.jsonl: 점수 추이 추적
+| | Anthropic | 내 하네스 |
+|--|-----------|-----------|
+| 방식 | 코딩 전 Generator/Evaluator 합격 기준 합의 | `/sprint-contract` 커맨드로 동일 구현 |
+| 실전 | — | 4차 23개 기준 합의 → iter1 97.5점 PASS, 재작업 0회 |
 
-#### 축 5. Sprint Contract — ⭐⭐⭐⭐
+#### 축 6. 모델 적응 — 미구현
 
-- `/sprint-contract` 커맨드: spec.md 기반 4축 합격 기준 생성 (신규 추가)
-- evaluator가 contract.md 기준으로 Pass/Fail 판정
-- 부족: 실전 미검증
-
-#### 축 6. 모델 적응 — ⭐ (미구현)
-
-- 하네스가 고정 구조
-- 어떤 컴포넌트가 "모델 한계 보정용"이고 어떤 것이 "필수"인지 구분 없음
-- 새 모델 나와도 재설계 기준 없음
-
----
-
-## Part 4: Gap 개선 — 무엇을 만들었나
-
-Anthropic 6축 기준으로 평가한 후, 부족한 4개 Gap을 구현했다.
-
-### Gap 2: evaluator 에이전트 (축 3 강화)
-
-**문제:** frontend-reviewer가 `git diff` 기반 정적 코드 리뷰만 수행. 실제 앱을 열어보지 않음.
-
-**구현:**
-
-| 파일 | 역할 |
-|------|------|
-| `~/.claude/agents/evaluator.md` | Playwright로 실제 앱 검증 + 4축 가중 점수 |
-| `~/.claude/skills/eval-playwright/SKILL.md` | Playwright MCP 동적 테스트 규칙 |
-| `~/.claude/scripts/eval-score-log.sh` | 점수를 score-history.jsonl에 기록 |
-
-**evaluator 3단계 프로세스:**
-
-```
-1단계: 정적 분석 (tsc --noEmit, lint, 코드 리뷰)
-2단계: 동적 테스트 (Playwright로 앱 열기, 클릭, 스크린샷, 반응형)
-3단계: 점수 산출 (4축 가중 평균)
-```
-
-**4축 채점 기준:**
-
-| 축 | 가중치 | 이유 |
-|----|--------|------|
-| 기능성 | 40% | 핵심. 버튼이 작동해야 함 |
-| 디자인 품질 | 25% | AI가 약한 영역 → 높은 비중 |
-| 코드 품질 | 20% | AI가 잘하는 영역 → 낮은 비중 |
-| 완성도 | 15% | Empty/Loading/Error 상태 등 |
-
-### Gap 1: handoff.md (축 2 강화)
-
-**문제:** Ralph Loop 매 iteration에서 에이전트가 파일 시스템을 스스로 추측. 구조화된 인수인계 없음.
-
-**구현:**
-
-| 파일 | 역할 |
-|------|------|
-| `~/.claude/templates/handoff.md` | 인수인계 문서 템플릿 |
-| `~/CLAUDE.md` (수정) | handoff 규칙 추가 |
-| `~/.claude/CLAUDE.md` (수정) | 컨텍스트 관리에 handoff 최우선 읽기 추가 |
-
-**handoff.md 구조:**
-
-```
-현재 상태 (Phase, 마지막 점수)
-완료된 작업 (체크리스트)
-진행 중인 작업 + 의도
-미해결 이슈
-Evaluator 피드백 (마지막)
-주의사항 (시도했으나 실패한 접근)
-다음 할 일
-```
-
-**구현 방식:** Ralph Loop의 stop-hook을 수정하지 않고, 프롬프트 자체에 "handoff.md 읽기 → 작업 → handoff.md 업데이트" 사이클을 포함.
-
-### Gap 3: Score-based Pivot (축 4 보완)
-
-**문제:** 반복해도 점수가 안 오르면 같은 방향으로만 수정. 창의적 점프 없음.
-
-**구현:**
-
-| 파일 | 역할 |
-|------|------|
-| `~/.claude/scripts/stall-detector.sh` | score-history.jsonl에서 정체 감지 |
-| `~/.claude/commands/pivot-check.md` | 수동 pivot 커맨드 |
-
-**판정 기준 (최근 3회 점수 변화):**
-
-| 판정 | 조건 |
-|------|------|
-| PROGRESSING | delta > +2점 1회 이상 |
-| STALL | 3회 연속 ±2점 이내 |
-| REGRESSING | 3회 연속 < -2점 |
-
-**검증 결과:** 3가지 시나리오 모두 정확 판정 (48→63→73 = PROGRESSING, 75→75.5→74.8 = STALL, 80→72→65 = REGRESSING)
-
-### Gap 5: Sprint Contract (축 5 신설)
-
-**문제:** Generator(frontend)가 평가 기준을 모르고 코딩, Evaluator가 자기 기준으로 채점. 사전 합의 없음.
-
-**구현:**
-
-| 파일 | 역할 |
-|------|------|
-| `~/.claude/commands/sprint-contract.md` | spec.md → contract.md 생성 |
-| `~/.claude/templates/contract.md` | 합격 기준 문서 템플릿 |
-
-**워크플로우:** spec.md 분석 → 4축별 테스트 가능한 합격 기준 작성 → 자동화 가능 여부 태깅 → 사용자 확인 → contract.md 저장
-
----
-
-## Part 5: 업데이트된 프로세스 (Phase 0~8)
-
-### 전체 흐름
-
-```
-Phase 0:   브레인스토밍 → brainstorming 스킬
-Phase 1:   기획 → pm 에이전트
-Phase 2:   기획 검증 → /spec-review
-Phase 2.5: 리스크 분석 → /pre-mortem
-Phase 3:   UI 설계 → Pencil MCP
-Phase 4:   구현 계획 → writing-plans
-Phase 4.5: 테스트 계획 → /test-scenarios
-Phase 4.7: Sprint Contract → /sprint-contract
-Phase 5:   Foundation → Lead 직접
-Phase 6:   병렬 개발 → 팀 에이전트 (worktree)
-Phase 7:   검증 루프 → evaluator + handoff + pivot + reviewer + test
-Phase 8:   기록 → /wrap + handoff + score-history
-```
-
-### Phase별 에이전트/스킬/커맨드 매핑
-
-| Phase | 에이전트 | 스킬/커맨드 |
-|-------|---------|------------|
-| 0. 브레인스토밍 | - | brainstorming (superpowers) |
-| 1. 기획 | `pm` (opus) | pm-requirements, pm-user-flow, pm-error-scenarios, pm-ux-heuristics |
-| 2. 기획 검증 | - | `/spec-review` |
-| 2.5 리스크 분석 | - | `/pre-mortem` |
-| 3. UI 설계 | - | Pencil MCP |
-| 4. 구현 계획 | - | writing-plans (superpowers) |
-| 4.5 테스트 계획 | - | `/test-scenarios` |
-| 4.7 Sprint Contract | - | `/sprint-contract` |
-| 5. Foundation | Lead (opus) | frontend-* 스킬 + pm-dummy-dataset |
-| 6. 병렬 개발 | `frontend` (sonnet) × N | frontend-components, style, naming, structure, fundamentals, accessibility, design |
-| 7. 검증 루프 | `evaluator` (opus) | eval-playwright, frontend-review-bugs, frontend-review-performance |
-| | `frontend-reviewer` (sonnet) | frontend-review-bugs/security/performance/maintainability, fundamentals, accessibility |
-| | `frontend-test` (opus) | frontend-unit/component/api-mock/e2e/visual-regression-test, tdd-workflow |
-| | - | `/pivot-check`, stall-detector.sh, eval-score-log.sh |
-| 8. 기록 | - | `/wrap` (my-session-wrap) |
-
-### 이전 프로세스 대비 변경점
-
-| Phase | 이전 | 이후 |
-|-------|------|------|
-| **4.7** | (없음) | `/sprint-contract` 추가 |
-| **7** | reviewer + test + Playwright | evaluator + handoff + pivot + reviewer + test |
-| **8** | docs/conversations/ (수동 기록) | /wrap + handoff + score-history (자동화) |
-| **컨텍스트 관리** | plan/progress/memory/findings | **handoff.md 최우선** + plan/progress/memory/findings |
+| | Anthropic | 내 하네스 |
+|--|-----------|-----------|
+| 방식 | 모델 업그레이드 시 불필요 컴포넌트 제거 (Opus 4.5→4.6에서 3가지 제거) | 고정 구조, 재설계 기준 없음 |
+| 구분 | 모델 한계 보정용 vs 필수 컴포넌트 분리 | 구분 없음 |
 
 ---
 
@@ -409,6 +267,8 @@ Phase 8:   기록 → /wrap + handoff + score-history
 2. **만드는 AI와 평가하는 AI를 분리하라.** 그리고 평가 기준에서 "AI가 약한 영역"에 높은 비중을 두면 AI가 안전한 선택 대신 도전적인 시도를 한다. Anthropic의 네덜란드 미술관 사례가 이를 증명.
 
 3. **하네스는 고정되면 안 된다.** Anthropic: "하네스의 모든 구성요소는 모델 한계에 대한 가정이다. 그 가정은 모델이 발전하면 깨진다." 현재 남은 Gap 6(모델 적응)이 이 원칙을 구현하는 것. 흥미로운 하네스 조합의 공간은 줄어들지 않는다 — 이동할 뿐이다.
+
+4. **하네스는 실전으로만 입증된다.** 문서화된 Phase 0~8이 아무리 정교해도, 실제 앱을 만들어보기 전까지는 Gap이 보이지 않는다. 4차에 걸친 반복 검증으로 Gap 5건 → 0건 수렴. 하네스 엔지니어링의 완성은 설계가 아니라 실행과 관찰이다.
 
 ---
 
